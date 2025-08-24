@@ -144,6 +144,7 @@ $currentMode = $_SESSION['mode'];
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ Mobile scaling -->
 <title>Scan Items</title>
 <style>
     body {
@@ -154,14 +155,17 @@ $currentMode = $_SESSION['mode'];
         align-items: center;
         height: 100vh;
         margin: 0;
+        padding: 1rem; /* ✅ helps on small screens */
     }
     .container {
         background: white;
         padding: 2rem;
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        width: 350px;
+        width: 100%;
+        max-width: 350px; /* ✅ prevent overflow on small devices */
         text-align: center;
+        box-sizing: border-box;
     }
     h2 { margin-bottom: 1rem; color: #333; }
     a.link-btn {
@@ -175,11 +179,12 @@ $currentMode = $_SESSION['mode'];
     }
     a.link-btn:hover { background: #2980b9; }
     input[type="text"] {
-        width: 90%;
+        width: 100%; /* ✅ scale input on mobile */
         padding: 0.6rem;
         margin: 0.5rem 0;
         border: 1px solid #ccc;
         border-radius: 8px;
+        box-sizing: border-box;
     }
     button {
         padding: 0.6rem 1.2rem;
@@ -188,6 +193,8 @@ $currentMode = $_SESSION['mode'];
         color: white;
         cursor: pointer;
         margin-top: 0.5rem;
+        width: 100%; /* ✅ buttons fit small screens */
+        box-sizing: border-box;
     }
     .scan-btn { background: #4CAF50; }
     .scan-btn:hover { background: #45a049; }
