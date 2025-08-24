@@ -1,0 +1,12 @@
+<h2>Scan Barcode</h2>
+<form method="post">
+    <input type="text" name="barcode" placeholder="Scan barcode here..." autofocus required>
+    <?php if (!empty($askName)): ?>
+        <br>
+        Item Name: <input type="text" name="name" required>
+        <button type="submit" name="scan">Save New Item</button>
+    <?php else: ?>
+        <button type="submit" name="scan">Scan</button>
+    <?php endif; ?>
+</form>
+
