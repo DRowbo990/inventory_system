@@ -36,6 +36,33 @@ $prefillName   = "";
 $lastBarcode   = "";
 $needNameFocus = false;
 
+// --- Handle new category creation ---
+if (isset($_POST['new_category']) && trim($_POST['new_category']) !== '') {
+    $newCat = trim($_POST['new_category']);
+    $_SESSION['selected_category'] = $newCat;
+}
+
+// --- Fetch categories dynamically ---
+$categories = [];
+$catResult = $conn->query("SELECT DISTINCT category FROM inventory WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
+if ($catResult && $catResult->num_rows > 0) {
+    while ($row = $catResult->fetch_assoc()) {
+        $categories[] = $row['category'];
+    }
+}
+
+// Include new session category if not in DB yet
+if (!empty($_SESSION['selected_category']) && !in_array($_SESSION['selected_category'], $categories)) {
+    $categories[] = $_SESSION['selected_category'];
+    sort($categories);
+}
+
+// Handle category selection
+if (isset($_POST['selected_category'])) {
+    $_SESSION['selected_category'] = $_POST['selected_category'];
+}
+$currentCategory = $_SESSION['selected_category'] ?? "";
+
 /**
  * Try UPCitemdb API lookup
  */
@@ -113,11 +140,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['scan'])) {
 
             if ($itemName) {
                 $initialQty      = ($mode === "remove") ? 0 : 1;
-                $defaultCategory = "Other";
-                $serial          = ""; // empty string instead of null
+                $serial          = "";
+                $categoryToUse   = $currentCategory ?: "Other";
 
                 $ins = $conn->prepare("INSERT INTO inventory (barcode, product_name, quantity, serial_number, category) VALUES (?, ?, ?, ?, ?)");
-                $ins->bind_param("ssiss", $barcode, $itemName, $initialQty, $serial, $defaultCategory);
+                $ins->bind_param("ssiss", $barcode, $itemName, $initialQty, $serial, $categoryToUse);
                 $ins->execute();
                 $ins->close();
 
@@ -144,7 +171,7 @@ $currentMode = $_SESSION['mode'];
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ Mobile scaling -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scan Items</title>
 <style>
     body {
@@ -155,7 +182,7 @@ $currentMode = $_SESSION['mode'];
         align-items: center;
         height: 100vh;
         margin: 0;
-        padding: 1rem; /* ✅ helps on small screens */
+        padding: 1rem;
     }
     .container {
         background: white;
@@ -163,7 +190,7 @@ $currentMode = $_SESSION['mode'];
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         width: 100%;
-        max-width: 350px; /* ✅ prevent overflow on small devices */
+        max-width: 400px;
         text-align: center;
         box-sizing: border-box;
     }
@@ -178,8 +205,8 @@ $currentMode = $_SESSION['mode'];
         text-decoration: none;
     }
     a.link-btn:hover { background: #2980b9; }
-    input[type="text"] {
-        width: 100%; /* ✅ scale input on mobile */
+    input[type="text"], select {
+        width: 100%;
         padding: 0.6rem;
         margin: 0.5rem 0;
         border: 1px solid #ccc;
@@ -193,7 +220,7 @@ $currentMode = $_SESSION['mode'];
         color: white;
         cursor: pointer;
         margin-top: 0.5rem;
-        width: 100%; /* ✅ buttons fit small screens */
+        width: 100%;
         box-sizing: border-box;
     }
     .scan-btn { background: #4CAF50; }
@@ -216,15 +243,35 @@ $currentMode = $_SESSION['mode'];
         <div class="mode-indicator <?= $currentMode === 'add' ? 'mode-add' : 'mode-remove' ?>">
             Current Mode: <?= strtoupper(htmlspecialchars($currentMode)) ?>
         </div>
+
+        <!-- Toggle mode -->
         <form method="post">
-            <button type="submit" name="toggle_mode" value="1" class="toggle-btn">
-                Toggle Mode
-            </button>
+            <button type="submit" name="toggle_mode" value="1" class="toggle-btn">Toggle Mode</button>
         </form>
+
+        <!-- Category selector -->
+        <form method="post">
+            <label for="selected_category">Select Category:</label>
+            <select name="selected_category" id="selected_category" onchange="this.form.submit()">
+                <option value="" <?= $currentCategory==="" ? "selected" : "" ?>>-- None --</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?= htmlspecialchars($cat) ?>" <?= $currentCategory===$cat ? "selected" : "" ?>>
+                        <?= htmlspecialchars($cat) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+
+        <!-- Add new category -->
+        <form method="post">
+            <input type="text" name="new_category" placeholder="Add new category">
+            <button type="submit">Add Category</button>
+        </form>
+
+        <!-- Scan form -->
         <form method="post" id="scanForm">
             <input type="text" id="barcodeField" name="barcode" value="<?= htmlspecialchars($lastBarcode) ?>" placeholder="Scan barcode here..." autofocus required>
             <input type="text" id="nameField" name="name" value="<?= htmlspecialchars($prefillName) ?>" placeholder="Enter item name if new">
-            <br>
             <button type="submit" name="scan" class="scan-btn">Submit</button>
         </form>
 
@@ -241,17 +288,14 @@ $currentMode = $_SESSION['mode'];
         const scanForm     = document.getElementById("scanForm");
         const scanButton   = scanForm.querySelector("button[name='scan']");
 
-        // If PHP told us to focus the name field
         <?php if ($needNameFocus): ?>
         nameField.focus();
         <?php else: ?>
-        // Otherwise reset & focus barcode for next scan
         barcodeField.value = "";
-        nameField.value = "";   // ✅ clear name field after every submission
+        nameField.value = "";
         barcodeField.focus();
         <?php endif; ?>
 
-        // Submit the form on Enter in the name field
         nameField.addEventListener("keypress", function(e) {
             if (e.key === "Enter") {
                 e.preventDefault();
