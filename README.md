@@ -281,7 +281,16 @@ inventory/
 ├── README.md          # This documentation
 └── LICENSE            # License information
 ```
-
+## User Guide
+1. Navigate to the application URL in your web browser.
+2. Enter your PIN to access the inventory dashboard.
+   1. This should drop you to the main inventory page. From here you can add an item manually by hand at the bottom of the page, or click ```Go to Scan Page``` to add items with a barcode scanner.
+3. On the scan page, you can: 
+   1. Add or remove items by selecting "Toggle Mode". 
+   2. A category can be selected from the dropdown, or a new category can be typed in the text box. 
+   3. Scan the barcode with your scanner or enter it by hand. The quantity will automatically update based on the selected mode. 
+      1. If the API cannot find the barcode in the database, or the barcode is not in the database, you will be prompted to enter the product name by hand. 
+   
 ## Contributing
 
 1. Fork the repository
